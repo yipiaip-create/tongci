@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>同詞相遇 多人版</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@500&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;900&display=swap">
+<style>
+/* Layout: one narrow column. Each player owns one colour; the colours overlap when minds meet. */
+:root{
+  color-scheme:light;
+  --bg:#F3F5F9; --surface:#FFFFFF; --ink:#18203A; --muted:#5B6584; --line:#D9DEEA;
+  --btn:#18203A; --btn-ink:#FFFFFF; --warn:#C2410C; --ok:#0F7B5C; --soft:#E9EDF6;
+  --p1:#E5484D; --p2:#E8A317; --p3:#2FA97C; --p4:#2F7DE1; --p5:#8E5BE0; --p6:#E255A1;
+  --serif:'Noto Serif TC','Songti TC','PMingLiU',serif;
+  --sans:'Noto Sans TC','PingFang HK','Microsoft JhengHei',system-ui,sans-serif;
+  --mono:'DM Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F1320; --surface:#181D30; --ink:#E9ECF7; --muted:#9AA3C0; --line:#2B3250;
+  --btn:#E9ECF7; --btn-ink:#0F1320; --warn:#FB923C; --ok:#4ADE9C; --soft:#222842; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1320; --surface:#181D30; --ink:#E9ECF7; --muted:#9AA3C0; --line:#2B3250;
+  --btn:#E9ECF7; --btn-ink:#0F1320; --warn:#FB923C; --ok:#4ADE9C; --soft:#222842; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;
+  padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{font-family:var(--serif);margin:0;text-wrap:balance;line-height:1.2}
+h1{font-size:clamp(2.2rem,8vw,3.2rem);font-weight:900;letter-spacing:.04em}
+h2{font-size:1.25rem;font-weight:600}
+p{margin:0}
+.sub{color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+label,.lbl{font-size:.8rem;letter-spacing:.08em;color:var(--muted);font-weight:500;display:block}
+input[type=text]{width:100%;font:inherit;font-size:1.05rem;padding:11px 13px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+input[type=text]:focus-visible,button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0;padding:14px;border-radius:12px;background:var(--soft)}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:44px;font:inherit;font-weight:500;padding:9px 0;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+.btn{font:inherit;font-weight:700;padding:12px 18px;border-radius:10px;border:1px solid var(--btn);background:var(--btn);color:var(--btn-ink);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.codeinput{font-family:var(--mono)!important;letter-spacing:.3em;text-transform:uppercase;text-align:center}
+.rules{margin:0;padding-left:1.2em;color:var(--muted);display:flex;flex-direction:column;gap:4px;font-size:.92rem}
+.mast{display:flex;flex-direction:column;gap:6px}
+.hero{width:100%;max-width:420px;height:auto;margin-top:6px}
+.hero text{font-family:var(--serif);font-weight:600;fill:var(--ink)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.roomtag{font-family:var(--mono);letter-spacing:.2em;font-size:1.05rem}
+.bigcode{font-family:var(--mono);font-size:clamp(2rem,10vw,3rem);letter-spacing:.25em;font-weight:500}
+.slots{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.slot{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:10px;background:var(--soft);min-width:0}
+.slot.empty{background:transparent;border:1px dashed var(--line);color:var(--muted)}
+.slot span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag{font-size:.7rem;letter-spacing:.1em;border:1px solid var(--line);border-radius:99px;padding:0 7px;color:var(--muted)}
+i.dot{width:12px;height:12px;border-radius:50%;background:var(--c);flex:none;display:inline-block}
+.timer{display:flex;align-items:center;gap:12px}
+.timer .t{font-family:var(--mono);font-size:1.5rem;min-width:2.4em;text-align:right;font-variant-numeric:tabular-nums}
+.timer .t.low{color:var(--warn)}
+.track{flex:1;height:8px;border-radius:99px;background:var(--soft);overflow:hidden}
+.fill{height:100%;width:100%;background:var(--ink);border-radius:99px;transition:width .3s linear}
+.fill.low{background:var(--warn)}
+.hint{display:flex;flex-wrap:wrap;gap:8px;align-items:center;color:var(--muted);font-size:.92rem}
+.hc{display:inline-flex;align-items:center;gap:7px;padding:3px 11px;border-radius:99px;background:var(--soft);font-family:var(--serif);font-weight:600;color:var(--ink);font-size:1.02rem}
+.entry{display:flex;gap:10px}
+.entry input{flex:1;min-width:0;font-family:var(--serif);font-size:1.4rem;font-weight:600}
+.who{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.who li{display:flex;align-items:center;gap:10px}
+.who li span{margin-left:auto;font-size:.85rem;color:var(--muted)}
+.who li.in span{color:var(--ok);font-weight:500}
+.reveal{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.rv{background:var(--soft);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.rv small{color:var(--muted);display:flex;align-items:center;gap:7px}
+.rv b{font-family:var(--serif);font-size:1.5rem;font-weight:900;overflow-wrap:anywhere;line-height:1.25}
+.win{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.win svg{width:100%;max-width:260px;height:auto}
+.orb{opacity:.6;animation:meet .9s cubic-bezier(.2,.8,.2,1) both}
+@keyframes meet{from{transform:translate(var(--sx),var(--sy))}to{transform:translate(0,0)}}
+.win .ww{font-family:var(--serif);font-size:2rem;font-weight:900}
+.win h2{font-size:1.6rem}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.note{color:var(--muted);font-size:.92rem}
+.hist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.hist li{display:grid;grid-template-columns:2.6em 1fr;gap:10px;padding:10px 0;border-top:1px solid var(--line);align-items:start}
+.hist .rn{font-family:var(--mono);font-size:.85rem;color:var(--muted);padding-top:5px}
+.cells{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--btn);color:var(--btn-ink);padding:10px 16px;border-radius:10px;font-size:.92rem;max-width:90vw;z-index:20}
+@media (max-width:560px){.split{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){.orb{animation:none}.fill{transition:none}}
+</style>
+</head>
+<body>
+<main>
+<section id="home" hidden>
+  <div class="mast">
+    <h1>同詞相遇</h1>
+    <p class="sub">2 至 6 人一齊玩。每人各寫一個詞，睇完大家寫咩，再諗一輪，直至所有人寫出同一個詞。</p>
+    <svg class="hero" viewBox="0 0 340 220" role="img" aria-label="修哥同四哥兩個詞相遇於「X你老X快啲嘛!」">
+      <circle cx="110" cy="110" r="105" style="fill:var(--p4);opacity:.55"/>
+      <circle cx="230" cy="110" r="105" style="fill:var(--p1);opacity:.55"/>
+      <text x="62" y="118" text-anchor="middle" font-size="22">修哥</text>
+      <text x="278" y="118" text-anchor="middle" font-size="22">四哥</text>
+      <text x="170" y="104" text-anchor="middle" font-size="18" style="font-weight:900">X你老X</text>
+      <text x="170" y="128" text-anchor="middle" font-size="18" style="font-weight:900">快啲嘛!</text>
+    </svg>
+  </div>
+  <div class="panel" style="margin-top:16px">
+    <div>
+      <label for="name">你叫咩名</label>
+      <input type="text" id="name" maxlength="12" autocomplete="off" placeholder="例如：阿明">
+    </div>
+    <div class="split">
+      <div class="col">
+        <h2>建立房間</h2>
+        <div><span class="lbl">幾多人玩</span>
+          <div class="seg" id="segMax">
+            <button type="button" data-v="2" aria-pressed="false">2</button><button type="button" data-v="3" aria-pressed="true">3</button><button type="button" data-v="4" aria-pressed="false">4</button><button type="button" data-v="5" aria-pressed="false">5</button><button type="button" data-v="6" aria-pressed="false">6</button>
+          </div></div>
+        <div><span class="lbl">每輪時間</span>
+          <div class="seg" id="segSec">
+            <button type="button" data-v="30" aria-pressed="false">30 秒</button><button type="button" data-v="60" aria-pressed="true">60 秒</button>
+          </div></div>
+        <button class="btn" data-act="create" type="button">建立房間</button>
+      </div>
+      <div class="col">
+        <h2>加入房間</h2>
+        <div><label for="joincode">6 位房間代碼</label>
+          <input type="text" id="joincode" class="codeinput" maxlength="6" autocomplete="off" placeholder="ABC234"></div>
+        <button class="btn" data-act="join" type="button">加入房間</button>
+      </div>
+    </div>
+    <p class="note" id="homeNote" hidden></p>
+  </div>
+  <ol class="rules" style="margin-top:16px">
+    <li>各自寫一個詞，全部人提交後同時揭曉。</li>
+    <li>如果唔同詞，就睇住大家上一輪嘅詞，再各寫一個。</li>
+    <li>全部人寫同一個詞就贏。意思一樣但寫法唔同，要全部人確認先算。</li>
+  </ol>
+</section>
+
+<section id="lobby" hidden>
+  <div class="top"><h2>等緊朋友入嚟</h2><button class="btn ghost" data-act="leave" type="button">離開</button></div>
+  <div class="panel">
+    <div><span class="lbl">房間代碼</span>
+      <div class="actions" style="align-items:center"><span class="bigcode" id="lobbyCode"></span>
+      <button class="btn ghost" data-act="copy" type="button">複製代碼</button></div></div>
+    <p class="note">叫朋友打開呢個網頁，揀「加入房間」輸入代碼。</p>
+    <ul class="slots" id="slots"></ul>
+    <p class="note" id="lobbyInfo"></p>
+    <div class="actions" id="lobbyActions"></div>
+  </div>
+</section>
+
+<section id="game" hidden style="display:flex;flex-direction:column;gap:16px">
+  <div class="top">
+    <div><span class="roomtag" id="gCode"></span> <span class="note" id="gRound"></span></div>
+    <button class="btn ghost" data-act="leave" type="button">離開</button>
+  </div>
+  <div class="timer" aria-live="off"><div class="track"><div class="fill" id="fill"></div></div><div class="t" id="tval">--</div></div>
+  <div class="hint" id="hint"></div>
+  <div id="inputZone"></div>
+  <div class="panel" id="statusZone"></div>
+  <div id="histWrap"><h2 style="margin-bottom:6px">詞鏈</h2><ul class="hist" id="hist"></ul></div>
+</section>
+<div class="note" id="loadnote" hidden></div>
+</main>
+<div id="toast" role="status" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script>
+<script>
+/* ====== 設定：將 Supabase 嘅 Project URL 同 anon public key 貼喺呢度 ====== */
+const SUPABASE_URL='https://rasbtebyjuufgpwtxysa.supabase.co';
+const SUPABASE_KEY='sb_publishable_aqBjsFfu01lnoXidU1VFug_-LXGJb4G';
+/* ======================================================================== */
+
+(function(){
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm=s=>String(s).normalize('NFKC').toLowerCase().replace(/\s+/g,'');
+const CODE_RE=/^[A-Z0-9]{6}$/;
+const MAX_ROUNDS=300;
+const TABLE='game_docs';
+let sb=null,uid=null,code=null,room=null,players=[],words=[],syns=[],chan=null,rows=new Map();
+let cfgMax=3,cfgSec=60,draft='',lastKey='',lastRevealed=null,sending=false,busy=false;
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+function toast(t){const el=$('toast');el.textContent=t;el.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>{el.hidden=true},2600)}
+function setHash(h){try{location.hash=h}catch(e){}}
+function show(v){['home','lobby','game'].forEach(k=>{$(k).hidden=k!==v});$('game').style.display=v==='game'?'flex':'none'}
+
+/* ---------- data layer (Supabase) ---------- */
+const rk=(kind,id)=>kind+':'+id;
+function ingest(){
+  const all=[...rows.values()];
+  const r=rows.get(rk('room','main'));
+  room=r?r.data:null;
+  players=all.filter(x=>x.kind==='players').map(x=>Object.assign({uid:x.id},x.data));
+  words=all.filter(x=>x.kind==='words').map(x=>x.data);
+  syns=all.filter(x=>x.kind==='syn').map(x=>x.data);
+}
+async function fetchAll(c){
+  const out=[];
+  for(let from=0;;from+=1000){
+    const {data,error}=await sb.from(TABLE).select('*').eq('room',c).order('created_at',{ascending:true}).order('id',{ascending:true}).range(from,from+999);
+    if(error)throw error;
+    out.push(...data);
+    if(data.length<1000)break;
+  }
+  return out;
+}
+async function put(kind,id,data,c){
+  c=c||code;
+  const {error}=await sb.from(TABLE).upsert({room:c,kind,id,data});
+  if(error)throw error;
+  if(c===code){rows.set(rk(kind,id),{room:c,kind,id,data});ingest();render()}
+}
+async function del(kind,id,c){
+  const {error}=await sb.from(TABLE).delete().eq('room',c).eq('kind',kind).eq('id',id);
+  if(error)throw error;
+}
+function applyEvent(p){
+  const t=p.eventType;
+  if(t==='DELETE'){const o=p.old;if(o&&o.kind)rows.delete(rk(o.kind,o.id))}
+  else if(p.new&&p.new.kind)rows.set(rk(p.new.kind,p.new.id),p.new);
+  ingest();render();
+}
+
+/* ---------- derived state ---------- */
+function sortedPlayers(){return players.slice().sort((a,b)=>(a.joinedAt-b.joinedAt)||a.uid.localeCompare(b.uid))}
+function rosterNow(){return room&&room.status==='playing'&&room.roster?room.roster:sortedPlayers().slice(0,room?room.max:6).map(p=>p.uid)}
+function colorOf(u){const i=Math.max(0,rosterNow().indexOf(u));return 'var(--p'+(i%6+1)+')'}
+function nameOf(u){const p=players.find(x=>x.uid===u);return p&&p.name?p.name:'玩家'}
+function roundInfo(g,r){
+  const ros=room.roster||[],by={};
+  words.forEach(w=>{if(w.game===g&&w.round===r&&ros.includes(w.uid))by[w.uid]=w.word});
+  const allIn=ros.length>0&&ros.every(u=>by[u]!=null);
+  const vals=ros.map(u=>by[u]).filter(x=>x!=null).map(norm);
+  const same=allIn&&vals[0]!==''&&vals.every(v=>v===vals[0]);
+  const synSet=new Set(syns.filter(s=>s.game===g&&s.round===r).map(s=>s.uid));
+  const synCount=ros.filter(u=>synSet.has(u)).length;
+  const synAll=allIn&&synCount===ros.length;
+  return {by,allIn,same,synAll,synCount,iSyn:synSet.has(uid),win:allIn&&(same||synAll)};
+}
+
+/* ---------- rooms ---------- */
+function genCode(){const a='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<6;i++)s+=a[Math.floor(Math.random()*a.length)];return s}
+function getName(){const n=$('name').value.trim().slice(0,12);if(n)store.set('sw_name',n);return n}
+
+async function createRoom(){
+  const name=getName();if(!name){toast('請先輸入你嘅名');$('name').focus();return}
+  busy=true;
+  try{
+    let c='',tries=0,taken=true;
+    while(taken&&tries<5){
+      c=genCode();tries++;
+      const {data,error}=await sb.from(TABLE).select('id').eq('room',c).eq('kind','room').limit(1);
+      if(error)throw error;
+      taken=data.length>0;
+    }
+    if(taken)throw new Error('code');
+    await put('room','main',{code:c,host:uid,max:cfgMax,seconds:cfgSec,status:'lobby',game:1,round:1,deadline:0,roster:[],createdAt:Date.now()},c);
+    await put('players',uid,{name,joinedAt:Date.now()},c);
+    enter(c);
+  }catch(e){toast('建立唔到房間，請再試一次')}
+  busy=false;
+}
+async function joinRoom(raw){
+  const c=String(raw||'').trim().toUpperCase();
+  if(!CODE_RE.test(c)){toast('房間代碼係 6 個字母或數字');$('joincode').focus();return}
+  busy=true;
+  try{
+    const {data,error}=await sb.from(TABLE).select('*').eq('room',c).in('kind',['room','players']);
+    if(error)throw error;
+    const rd=data.find(x=>x.kind==='room');
+    if(!rd){toast('搵唔到呢個房間');busy=false;return}
+    const ps=data.filter(x=>x.kind==='players');
+    const mine=ps.find(x=>x.id===uid);
+    if(!mine){
+      if(rd.data.status!=='lobby'){toast('呢個房間已經開始咗');busy=false;return}
+      if(ps.length>=rd.data.max){toast('房間已經滿人');busy=false;return}
+      const name=getName();
+      if(!name){toast('請先輸入你嘅名');$('name').focus();busy=false;return}
+      await put('players',uid,{name,joinedAt:Date.now()},c);
+    }
+    enter(c);
+  }catch(e){toast('加入唔到，請再試一次')}
+  busy=false;
+}
+function enter(c){
+  leaveSubs();code=c;room=null;players=[];words=[];syns=[];rows=new Map();lastKey='';lastRevealed=null;draft='';
+  store.set('sw_room',c);setHash(c);
+  show('lobby');$('loadnote').hidden=true;
+  const t=setTimeout(()=>{if(!room){$('loadnote').hidden=false;$('loadnote').textContent='連線慢過預期，請稍等一陣。'}},10000);
+  const ch=sb.channel('room-'+c+'-'+Date.now())
+    .on('postgres_changes',{event:'*',schema:'public',table:TABLE,filter:'room=eq.'+c},applyEvent)
+    .subscribe(async status=>{
+      if(status==='SUBSCRIBED'){
+        try{(await fetchAll(c)).forEach(x=>rows.set(rk(x.kind,x.id),x));ingest();
+          if(!room)toast('呢個房間唔存在');render()}
+        catch(e){toast('讀取房間資料失敗，可以重新整理頁面')}
+      }else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){toast('連線出咗問題，正在重試')}
+    });
+  chan=ch;
+  unsubs=[()=>clearTimeout(t),()=>{try{sb.removeChannel(ch)}catch(e){}}];
+  render();
+}
+let unsubs=[];
+function leaveSubs(){unsubs.forEach(f=>{try{f()}catch(e){}});unsubs=[];chan=null}
+async function leave(){
+  const wasLobby=room&&room.status==='lobby',c=code;
+  leaveSubs();code=null;room=null;rows=new Map();store.set('sw_room','');setHash('');
+  if(wasLobby&&c){try{await del('players',uid,c)}catch(e){}}
+  $('loadnote').hidden=true;render();
+}
+async function startGame(){
+  if(!room||room.host!==uid)return;
+  const ps=sortedPlayers().slice(0,room.max);
+  if(ps.length<2){toast('最少要 2 個人');return}
+  try{await put('room','main',Object.assign({},room,{status:'playing',roster:ps.map(p=>p.uid),round:1,deadline:Date.now()+room.seconds*1000}))}
+  catch(e){toast('開始唔到，請再試一次')}
+}
+
+/* ---------- game actions ---------- */
+async function submitWord(){
+  const v=draft.trim().slice(0,24);
+  if(!v||sending||!room)return;
+  if(Date.now()>=room.deadline){toast('時間到');return}
+  sending=true;
+  try{await put('words',room.game+'_'+room.round+'_'+uid,{game:room.game,round:room.round,uid,word:v,t:Date.now()})}
+  catch(e){toast('提交唔到，請再試一次')}
+  sending=false;
+}
+async function confirmSyn(){
+  try{await put('syn',room.game+'_'+room.round+'_'+uid,{game:room.game,round:room.round,uid,t:Date.now()})}
+  catch(e){toast('確認唔到，請再試一次')}
+}
+async function advance(patch){
+  /* 只喺大家仲停留喺同一局同一輪時先寫入，避免兩個人同時撳造成跳輪 */
+  const g=room.game,r=room.round;
+  const next=Object.assign({},room,patch(room));
+  const {data,error}=await sb.from(TABLE).update({data:next})
+    .eq('room',code).eq('kind','room').eq('id','main')
+    .eq('data->>game',String(g)).eq('data->>round',String(r)).select();
+  if(error)throw error;
+  if(data&&data[0]){rows.set(rk('room','main'),data[0]);ingest();render()}
+}
+async function nextRound(){
+  try{await advance(d=>({round:d.round+1,deadline:Date.now()+d.seconds*1000}))}
+  catch(e){toast('進入下一輪失敗，請再試一次')}
+}
+async function rematch(){
+  try{await advance(d=>({game:d.game+1,round:1,deadline:Date.now()+d.seconds*1000}))}
+  catch(e){toast('開新一局失敗，請再試一次')}
+}
+
+/* ---------- render ---------- */
+function render(){
+  if(!sb||!uid){show('home');return}
+  if(!code){show('home');return}
+  if(!room){show('lobby');$('lobbyCode').textContent=code;$('slots').innerHTML='';$('lobbyInfo').textContent='載入緊房間…';$('lobbyActions').innerHTML='';return}
+  if(room.status==='lobby')renderLobby();else renderGame();
+}
+function renderLobby(){
+  show('lobby');
+  const ps=sortedPlayers().slice(0,room.max);
+  $('lobbyCode').textContent=code;
+  let h='';
+  for(let i=0;i<room.max;i++){
+    const p=ps[i];
+    h+=p?'<li class="slot"><i class="dot" style="--c:var(--p'+(i%6+1)+')"></i><span>'+esc(p.name)+(p.uid===uid?'（你）':'')+'</span>'+(p.uid===room.host?'<em class="tag" style="font-style:normal">房主</em>':'')+'</li>'
+      :'<li class="slot empty"><i class="dot" style="--c:var(--line)"></i><span>等緊朋友…</span></li>';
+  }
+  $('slots').innerHTML=h;
+  $('lobbyInfo').textContent='最多 '+room.max+' 人，每輪 '+room.seconds+' 秒。現時 '+ps.length+' 人。';
+  $('lobbyActions').innerHTML=room.host===uid
+    ?'<button class="btn" data-act="start" type="button"'+(ps.length<2?' disabled':'')+'>開始遊戲（'+ps.length+' 人）</button>'
+    :'<p class="note">等房主開始遊戲…</p>';
+}
+function orbs(colors){
+  const n=colors.length,R=44,rad=n>1?26:0,cx=130,cy=85;
+  let s='<svg viewBox="0 0 260 170" aria-hidden="true">';
+  colors.forEach((c,i)=>{
+    const a=(-90+360*i/n)*Math.PI/180,x=cx+rad*Math.cos(a),y=cy+rad*Math.sin(a);
+    s+='<circle class="orb" cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+R+'" style="fill:'+c+';--sx:'+((x-cx)*3.4).toFixed(0)+'px;--sy:'+((y-cy)*3.4).toFixed(0)+'px"/>';
+  });
+  return s+'</svg>';
+}
+function renderGame(){
+  show('game');
+  const g=room.game,r=room.round,ros=room.roster,N=ros.length,now=Date.now();
+  const info=roundInfo(g,r);
+  const revealed=info.allIn||now>=room.deadline;
+  const win=info.win,capped=!win&&revealed&&r>=MAX_ROUNDS;
+  lastRevealed=revealed;
+  $('gCode').textContent=code;
+  $('gRound').textContent='第 '+r+' 輪 · '+N+' 人';
+  const my=info.by[uid],mySub=my!=null;
+
+  if(!revealed){
+    if(r===1)$('hint').innerHTML='第一輪：隨便寫一個詞。';
+    else{
+      const prev=roundInfo(g,r-1);
+      $('hint').innerHTML='<span>上一輪：</span>'+ros.map(u=>prev.by[u]!=null?'<span class="hc"><i class="dot" style="--c:'+colorOf(u)+'"></i>'+esc(prev.by[u])+'</span>':'').join('')+'<span>想想大家之間有咩關係。</span>';
+    }
+  }else $('hint').innerHTML='';
+
+  /* input zone: rebuilt only when its own state changes, so typing is never interrupted */
+  const key=g+'-'+r+'-'+mySub+'-'+revealed;
+  if(key!==lastKey){
+    if(lastKey.split('-').slice(0,2).join('-')!==g+'-'+r)draft='';
+    lastKey=key;
+    const z=$('inputZone');
+    if(!mySub&&!revealed){
+      z.innerHTML='<div class="entry"><input type="text" id="wordIn" maxlength="24" autocomplete="off" placeholder="寫一個詞" aria-label="你嘅詞"><button class="btn" data-act="submit" type="button">提交</button></div>';
+      const inp=$('wordIn');inp.value=draft;
+      inp.addEventListener('input',()=>{draft=inp.value});
+      inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();submitWord()}});
+      inp.focus();
+    }else if(mySub&&!revealed){
+      z.innerHTML='<p>你寫咗 <span class="hc">'+esc(my)+'</span>，提交後唔可以改。</p>';
+    }else z.innerHTML='';
+  }
+
+  let h='';
+  if(!revealed){
+    const inCount=ros.filter(u=>info.by[u]!=null).length;
+    h='<h2>等緊大家（'+inCount+'/'+N+'）</h2><ul class="who">'+ros.map(u=>{const d=info.by[u]!=null;
+      return '<li class="'+(d?'in':'')+'"><i class="dot" style="--c:'+colorOf(u)+'"></i>'+esc(nameOf(u))+(u===uid?'（你）':'')+'<span>'+(d?'已提交':'諗緊…')+'</span></li>'}).join('')+'</ul>';
+  }else{
+    h='<div class="reveal">'+ros.map(u=>'<div class="rv"><small><i class="dot" style="--c:'+colorOf(u)+'"></i>'+esc(nameOf(u))+(u===uid?'（你）':'')+'</small><b>'+(info.by[u]!=null?esc(info.by[u]):'—')+'</b></div>').join('')+'</div>';
+    if(win){
+      const first=info.same?info.by[ros[0]]:null;
+      h+='<div class="win">'+orbs(ros.map(colorOf))+'<h2>同詞相遇！</h2>'
+        +(first?'<div class="ww">'+esc(first)+'</div>':'<div class="note">大家確認咗意思一樣</div>')
+        +'<p class="note">第 '+r+' 輪就相遇。</p><div class="actions"><button class="btn" data-act="rematch" type="button">再嚟一局</button></div></div>';
+    }else if(capped){
+      h+='<p class="note">已經玩到 '+MAX_ROUNDS+' 輪上限，詞鏈會保留喺下面。</p><div class="actions"><button class="btn" data-act="rematch" type="button">再嚟一局</button></div>';
+    }else{
+      h+='<p class="note">'+(info.allIn?'未同詞。如果大家嘅詞意思一樣，全部人都撳「意思一樣」就成功。':'有人未提交，呢輪唔可以成功。')+'</p><div class="actions">'
+        +(info.allIn?'<button class="btn ghost" data-act="syn" type="button"'+(info.iSyn?' disabled':'')+'>'+(info.iSyn?'你已確認':'意思一樣')+'（'+info.synCount+'/'+N+'）</button>':'')
+        +'<button class="btn" data-act="next" type="button">下一輪</button></div>';
+    }
+  }
+  $('statusZone').innerHTML=h;
+
+  let hh='';
+  for(let k=r-1;k>=1;k--){
+    const ri=roundInfo(g,k);
+    hh+='<li><span class="rn">R'+k+'</span><div class="cells">'+ros.map(u=>'<span class="hc"><i class="dot" style="--c:'+colorOf(u)+'"></i>'+(ri.by[u]!=null?esc(ri.by[u]):'—')+'</span>').join('')+'</div></li>';
+  }
+  $('hist').innerHTML=hh;
+  $('histWrap').hidden=r===1;
+  updateTimer(revealed);
+}
+function updateTimer(revealed){
+  const f=$('fill'),t=$('tval');
+  if(revealed){t.textContent='—';t.classList.remove('low');f.style.width='0%';f.classList.remove('low');return}
+  const rem=Math.max(0,Math.ceil((room.deadline-Date.now())/1000));
+  t.textContent=rem;
+  const low=rem<=10;t.classList.toggle('low',low);f.classList.toggle('low',low);
+  f.style.width=Math.min(100,(room.deadline-Date.now())/(room.seconds*10))+'%';
+}
+setInterval(()=>{
+  if(!room||room.status!=='playing'||$('game').hidden)return;
+  const info=roundInfo(room.game,room.round);
+  const revealed=info.allIn||Date.now()>=room.deadline;
+  if(revealed!==lastRevealed)render();else updateTimer(revealed);
+},250);
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  const seg=e.target.closest('.seg button');
+  if(seg){const p=seg.parentElement;p.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b===seg));
+    if(p.id==='segMax')cfgMax=+seg.dataset.v;else cfgSec=+seg.dataset.v;return}
+  const b=e.target.closest('[data-act]');if(!b||b.disabled)return;
+  const a=b.dataset.act;
+  if(a==='create'&&!busy)createRoom();
+  else if(a==='join'&&!busy)joinRoom($('joincode').value);
+  else if(a==='leave')leave();
+  else if(a==='start')startGame();
+  else if(a==='submit')submitWord();
+  else if(a==='syn')confirmSyn();
+  else if(a==='next')nextRound();
+  else if(a==='rematch')rematch();
+  else if(a==='copy'){const c=code;
+    (navigator.clipboard?navigator.clipboard.writeText(c):Promise.reject()).then(()=>toast('已複製代碼'),()=>toast('代碼係 '+c))}
+});
+$('joincode').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing&&!busy)joinRoom($('joincode').value)});
+$('joincode').addEventListener('input',e=>{e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'')});
+
+/* ---------- boot ---------- */
+function lockHome(msg){
+  const n=$('homeNote');n.hidden=false;n.textContent=msg;
+  document.querySelectorAll('#home [data-act]').forEach(x=>x.disabled=true);
+}
+(async function boot(){
+  $('name').value=store.get('sw_name')||'';
+  show('home');
+  if(!window.supabase||SUPABASE_URL.indexOf('PASTE_')===0||SUPABASE_KEY.indexOf('PASTE_')===0){
+    lockHome('未設定 Supabase。請喺 index.html 最頂嘅 SUPABASE_URL 同 SUPABASE_KEY 填入你專案嘅資料。');return;
+  }
+  try{
+    sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+    let {data:{session}}=await sb.auth.getSession();
+    if(!session){
+      const r=await sb.auth.signInAnonymously();
+      if(r.error)throw r.error;
+      session=r.data.session;
+    }
+    uid=session.user.id;
+  }catch(e){
+    sb=null;
+    lockHome('連唔到 Supabase。請確認已經喺 Authentication 設定入面開咗 Anonymous sign-ins，而且 URL 同 key 冇貼錯。');return;
+  }
+  const h=(location.hash||'').slice(1).toUpperCase();
+  if(CODE_RE.test(h)){
+    $('joincode').value=h;
+    if(store.get('sw_room')===h&&$('name').value)joinRoom(h);
+    else $('name').focus();
+  }
+})();
+})();
+</script>
+</body>
+</html>
